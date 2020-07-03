@@ -1,6 +1,7 @@
 package openFactions;
 
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.plugin.Plugin;
@@ -22,5 +23,10 @@ private CustomNations plugin;
     @EventHandler
     public void onBlockPlace(BlockPlaceEvent event) {
         Helper.HandlePlayerEvent(event);
+    }
+    
+    @EventHandler
+    public void onPlayerInteraction(PlayerInteractEvent event) {
+    	Helper.HandlePlayerEvent(event);
     }
 }

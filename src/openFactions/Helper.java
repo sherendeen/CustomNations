@@ -10,6 +10,7 @@ import org.bukkit.Chunk;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 
 public class Helper {
 	public static boolean isSpecifiedLandClaimInsideAnyFaction(LandClaim lc) {
@@ -141,6 +142,8 @@ public class Helper {
         }
         return list;
     }
+   
+
     
     /**
      * Returns a nicely formated visa report.
@@ -261,6 +264,7 @@ public class Helper {
     public static void HandlePlayerEvent(BlockBreakEvent event) {
     	Player player = event.getPlayer();
         Faction fac = null;
+        boolean playerHasVisa = false;
         // check to see if the player is even in a faction
         if (isPlayerInAnyFaction(player.getDisplayName())) {
             fac = returnFactionThatPlayerIsIn(player.getUniqueId());
@@ -268,22 +272,40 @@ public class Helper {
         
         LandClaim lc = null;
         // if the specified chunk is not inside a faction, stop checking
-        //and let the event continue
+        // and let the event continue
         if (!isSpecifiedChunkInsideAnyFaction(event.getBlock().getChunk())) {
             return;
         }
         
         lc = returnLandClaimContainingSpecifiedChunk(event.getBlock().getChunk());
+        
+        ArrayList<Faction> lcFactionObjects = returnFactionObjectsWhereClaimIsFoundIn(lc);
+        
+        // Visa check, a player will be able to edit regardless of visa class
+        // For every faction object in the land claim, check if the player is a visa holder.
+        // TODO: implement visa classes
+    	for (Faction f : lcFactionObjects) {
+    		for(int i = 0; i < f.getVisas().size(); i++) {
+    			playerHasVisa = f.getVisas().get(i).getVisaHolder().equals(player.getUniqueId());
+    		}
+    	}
+    	
         // if the player is not in a faction but the landclaim is owned
         if (fac == null && lc != null) {
-        	//cancel event
+        	
+        	if(playerHasVisa) {
+        		return;
+        	}
+        	
+        	//Cancel event only if player does not have a visa
             event.setCancelled(true);
             return;
         }
+    
         
         Group playerGroup = getGroupPlayerIsIn(fac, player.getUniqueId());
-        //if this faction does not own the landclaim, cancel event
-        if (!returnFactionObjectsWhereClaimIsFoundIn(lc).contains(fac)) {
+        //if this faction does not own the landclaim, cancel the event.
+        if (!lcFactionObjects.contains(fac)) {
             event.setCancelled(true);
             return;
         }
@@ -308,6 +330,7 @@ public class Helper {
     public static void HandlePlayerEvent(BlockPlaceEvent event) {
     	Player player = event.getPlayer();
         Faction fac = null;
+        boolean playerHasVisa = false;
         //if the player is in a faction.. get their faction
         if (isPlayerInAnyFaction(player.getDisplayName())) {
             fac = returnFactionThatPlayerIsIn(player.getUniqueId());
@@ -322,8 +345,26 @@ public class Helper {
         }
         
         lc = returnLandClaimContainingSpecifiedChunk(event.getBlock().getChunk());
+        
+        ArrayList<Faction> lcFactionObjects = returnFactionObjectsWhereClaimIsFoundIn(lc);
+        
+        // Visa check, a player will be able to edit regardless of visa class
+        // For every faction object in the land claim, check if the player is a visa holder.
+        // TODO: implement visa classes
+    	for (Faction f : lcFactionObjects) {
+    		for(int i = 0; i < f.getVisas().size(); i++) {
+    			playerHasVisa = f.getVisas().get(i).getVisaHolder().equals(player.getUniqueId());
+    		}
+    	}
+    	
+        
         // if the faction is null and the landclaim is not null
         if (fac == null && lc != null) {
+        	
+        	if(playerHasVisa) {
+        		return;
+        	}
+        	
         	//cancel the event because we know that
         	//the land is owned by someone but the player is not
         	//in a faction that could possibly interact with it
@@ -356,6 +397,11 @@ public class Helper {
         	//then we cancel the event
             event.setCancelled(true);
         }
+    }
+    //TODO: Implement player interact event method. Players should not be able to interact with blocksunless they have a visa that allows them to or they are in the faction that the landclaim is associated with.
+
+    public static void HandlePlayerEvent(PlayerInteractEvent event) {
+    	
     }
     
     public static ArrayList<String> getArrayListOfCoordinates(final ArrayList<LandClaim> claims) {
